@@ -1,0 +1,182 @@
+#!/usr/bin/env bash
+# launchsv: a virtual screen (Xvfb) ready to use for agents. See `launchsv help`.
+set -euo pipefail
+
+VERSION=0.1.0
+SELF=$(readlink -f "${BASH_SOURCE[0]}")
+ROOT=$(dirname "$(dirname "$SELF")")
+HOME_DIR=${LAUNCHSV_HOME:-${XDG_DATA_HOME:-$HOME/.local/share}/launchsv}
+SYSROOT=$HOME_DIR/root
+STATE=${TMPDIR:-/tmp}/launchsv-$(id -u)
+SIZE_DEFAULT=1280x900
+XVFB=Xvfb
+
+die() { echo "launchsv: $*" >&2; exit 1; }
+
+# Bootstrap mode (no root): binaries and libraries were extracted into $SYSROOT by `setup`.
+use_env() {
+  if [ -f "$HOME_DIR/.bootstrap" ]; then
+    export PATH="$SYSROOT/usr/bin:$PATH"
+    export LD_LIBRARY_PATH="$SYSROOT/usr/lib/x86_64-linux-gnu${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+    export FONTCONFIG_FILE="$HOME_DIR/fonts.conf"
+    # The patched Xvfb looks for xkbcomp and the XKB data through these short paths (see setup.sh).
+    ln -sfn "$SYSROOT/usr/bin" /tmp/xb
+    ln -sfn "$SYSROOT/usr/share/X11/xkb" /tmp/xk
+    XVFB=$HOME_DIR/Xvfb-relocated
+  fi
+  command -v "$XVFB" >/dev/null 2>&1 || [ -x "$XVFB" ] || die "Xvfb not found: run 'launchsv setup'"
+}
+
+# start_display WxH: starts Xvfb on a free display (chosen by Xvfb itself via -displayfd).
+# Sets DISPLAY_NUM and XVFB_PID.
+start_display() {
+  local size=$1 f i
+  mkdir -p "$STATE"
+  f=$(mktemp "$STATE/disp.XXXXXX")
+  "$XVFB" -displayfd 3 -screen 0 "${size}x24" -nolisten tcp -noreset 3>"$f" >"$STATE/xvfb.log" 2>&1 &
+  XVFB_PID=$!
+  for i in $(seq 1 100); do
+    [ -s "$f" ] && break
+    kill -0 "$XVFB_PID" 2>/dev/null || { cat "$STATE/xvfb.log" >&2; die "Xvfb exited unexpectedly"; }
+    sleep 0.1
+  done
+  [ -s "$f" ] || die "Xvfb did not start (see $STATE/xvfb.log)"
+  DISPLAY_NUM=$(head -n1 "$f"); rm -f "$f"
+  echo "$XVFB_PID" >"$STATE/$DISPLAY_NUM.pid"
+}
+
+stop_display() {
+  kill "$XVFB_PID" 2>/dev/null || true
+  rm -f "$STATE/$DISPLAY_NUM.pid"
+}
+
+# parse_size [-s WxH] [--] ARGS...: sets SIZE and REST.
+parse_size() {
+  SIZE=$SIZE_DEFAULT; REST=()
+  while [ $# -gt 0 ]; do
+    case $1 in
+      -s|--size) [ $# -ge 2 ] || die "missing value for $1"; SIZE=$2; shift 2 ;;
+      --) shift; REST+=("$@"); break ;;
+      *) REST+=("$1"); shift ;;
+    esac
+  done
+  [[ $SIZE =~ ^[0-9]+x[0-9]+$ ]] || die "invalid size: $SIZE (expected e.g. 1280x900)"
+}
+
+need_display() {
+  [ -n "${DISPLAY:-}" ] || die "DISPLAY is empty: use 'launchsv run', 'launchsv chrome' or 'eval \"\$(launchsv start)\"'"
+}
+
+cmd_setup() { exec "$ROOT/setup.sh" "$@"; }
+
+cmd_start() {
+  parse_size "$@"; use_env
+  start_display "$SIZE"
+  disown "$XVFB_PID" 2>/dev/null || true
+  echo "export DISPLAY=:$DISPLAY_NUM"
+}
+
+cmd_stop() {
+  local target=${1:-all} f n pid stopped=0
+  for f in "$STATE"/*.pid; do
+    [ -e "$f" ] || continue
+    n=$(basename "$f" .pid); pid=$(cat "$f")
+    if [ "$target" = all ] || [ "$target" = ":$n" ] || [ "$target" = "$n" ]; then
+      kill "$pid" 2>/dev/null || true; rm -f "$f"; echo "stopped display :$n"; stopped=1
+    fi
+  done
+  [ "$stopped" = 1 ] || echo "no matching display"
+}
+
+cmd_run() {
+  parse_size "$@"; use_env
+  [ ${#REST[@]} -gt 0 ] || die "usage: launchsv run [-s WxH] -- command..."
+  start_display "$SIZE"
+  trap stop_display EXIT
+  local rc=0
+  DISPLAY=":$DISPLAY_NUM" LAUNCHSV_SIZE=$SIZE "${REST[@]}" || rc=$?
+  exit "$rc"
+}
+
+cmd_shot() {
+  [ $# -ge 1 ] || die "usage: launchsv shot OUT.png [x y w h]"
+  use_env; need_display
+  local out=$1; shift
+  mkdir -p "$(dirname "$out")"
+  xwd -root -silent | python3 "$ROOT/lib/xwd2png.py" - "$out" "$@"
+  echo "$out"
+}
+
+cmd_click() { [ $# -eq 2 ] || die "usage: launchsv click X Y"; use_env; need_display; xdotool mousemove "$1" "$2" click 1; }
+cmd_type()  { [ $# -ge 1 ] || die "usage: launchsv type TEXT"; use_env; need_display; xdotool type --delay 20 -- "$*"; }
+cmd_key()   { [ $# -ge 1 ] || die "usage: launchsv key KEY... (e.g. Return, ctrl+l)"; use_env; need_display; xdotool key "$@"; }
+
+cmd_chrome() {
+  local ext="" url="" scenario="" out="" size=$SIZE_DEFAULT locale=en-US
+  while [ $# -gt 0 ]; do
+    case $1 in
+      --extension|--url|--scenario|--out|--size|-s|--locale)
+        [ $# -ge 2 ] || die "missing value for $1" ;;
+    esac
+    case $1 in
+      --extension) ext=$(readlink -f "$2"); shift 2 ;;
+      --url) url=$2; shift 2 ;;
+      --scenario) scenario=$(readlink -f "$2"); shift 2 ;;
+      --out) out=$2; shift 2 ;;
+      --size|-s) size=$2; shift 2 ;;
+      --locale) locale=$2; shift 2 ;;
+      *) die "unknown option: $1 (see 'launchsv help')" ;;
+    esac
+  done
+  [[ $size =~ ^[0-9]+x[0-9]+$ ]] || die "invalid size: $size (expected e.g. 1280x900)"
+  [ -z "$ext" ] || [ -f "$ext/manifest.json" ] || die "no manifest.json in $ext"
+  [ -z "$scenario" ] || [ -f "$scenario" ] || die "scenario not found: $scenario"
+  command -v node >/dev/null 2>&1 || die "node is required for 'launchsv chrome'"
+  [ -d "$HOME_DIR/node/node_modules/playwright" ] || die "Playwright is missing: run 'launchsv setup'"
+  use_env
+  [ -n "$out" ] || out=_tmp/screenshots/launchsv-$(date +%Y%m%d-%H%M%S)
+  mkdir -p "$out"; out=$(cd "$out" && pwd)
+  start_display "$size"
+  trap stop_display EXIT
+  local rc=0
+  DISPLAY=":$DISPLAY_NUM" LAUNCHSV_BIN="$SELF" LAUNCHSV_HOME="$HOME_DIR" LAUNCHSV_SIZE=$size \
+    LAUNCHSV_EXTENSION=$ext LAUNCHSV_URL=$url LAUNCHSV_SCENARIO=$scenario LAUNCHSV_OUT=$out LAUNCHSV_LOCALE=$locale \
+    node "$ROOT/lib/chrome.mjs" || rc=$?
+  exit "$rc"
+}
+
+cmd_help() {
+  cat <<'EOF'
+launchsv: a virtual screen (Xvfb) for screenshots Playwright cannot take
+(browser toolbar, extension badge or menu, native windows).
+
+  setup                          one-time, idempotent install (root: apt; otherwise: unprivileged bootstrap)
+  run [-s WxH] -- CMD...         temporary screen; CMD runs with DISPLAY set, then the screen is destroyed
+  start [-s WxH]                 persistent screen; prints 'export DISPLAY=:N' (eval "$(launchsv start)")
+  stop [:N|all]                  stop screens created by 'start'
+  shot OUT.png [x y w h]         screenshot of the screen, or of an area         (needs DISPLAY)
+  click X Y | type TEXT | key K  native input through xdotool                    (needs DISPLAY)
+  chrome [--extension DIR] [--url URL] [--scenario FILE.mjs] [--out DIR] [-s WxH] [--locale xx-XX]
+                                 visible Chromium (disposable profile) on a virtual screen, optional scenario
+  version                        print the version
+
+Scenario: export default async ({ page, context, worker, extensionId, shot, click, key, type, sleep }) => { ... }
+  shot(name[, [x, y, w, h]]) writes OUT/name.png; capture-manifest.json is written when the scenario ends.
+Environment: LAUNCHSV_HOME (default ~/.local/share/launchsv)
+EOF
+}
+
+case ${1:-help} in
+  setup) shift; cmd_setup "$@" ;;
+  start) shift; cmd_start "$@" ;;
+  stop) shift; cmd_stop "$@" ;;
+  run) shift; cmd_run "$@" ;;
+  shot) shift; cmd_shot "$@" ;;
+  click) shift; cmd_click "$@" ;;
+  type) shift; cmd_type "$@" ;;
+  key) shift; cmd_key "$@" ;;
+  chrome) shift; cmd_chrome "$@" ;;
+  version|--version) echo "launchsv $VERSION" ;;
+  help|-h|--help) cmd_help ;;
+  *) cmd_help >&2; exit 2 ;;
+esac
