@@ -1,20 +1,20 @@
 #!/usr/bin/env bash
-# One-time launchsv installation.
+# One-time launchvs installation.
 #   root:     installs packages.txt with apt.
-#   non-root: unprivileged bootstrap, the .deb files are downloaded and extracted into $LAUNCHSV_HOME.
+#   non-root: unprivileged bootstrap, the .deb files are downloaded and extracted into $LAUNCHVS_HOME.
 # Usage: ./setup.sh [--force]
 set -euo pipefail
 
 ROOT=$(dirname "$(readlink -f "$0")")
-HOME_DIR=${LAUNCHSV_HOME:-${XDG_DATA_HOME:-$HOME/.local/share}/launchsv}
+HOME_DIR=${LAUNCHVS_HOME:-${XDG_DATA_HOME:-$HOME/.local/share}/launchvs}
 SYSROOT=$HOME_DIR/root
 FORCE=0; [ "${1:-}" = "--force" ] && FORCE=1
 PKGS=$(grep -vE '^[[:space:]]*(#|$)' "$ROOT/packages.txt" | tr '\n' ' ')
 HASH=$(sha256sum "$ROOT/packages.txt" | cut -c1-16)
-say() { echo "[launchsv setup] $*"; }
+say() { echo "[launchvs setup] $*"; }
 
-command -v apt-get >/dev/null || { echo "launchsv setup: apt-get not found (Debian/Ubuntu only)" >&2; exit 1; }
-command -v python3 >/dev/null || { echo "launchsv setup: python3 is required" >&2; exit 1; }
+command -v apt-get >/dev/null || { echo "launchvs setup: apt-get not found (Debian/Ubuntu only)" >&2; exit 1; }
+command -v python3 >/dev/null || { echo "launchvs setup: python3 is required" >&2; exit 1; }
 mkdir -p "$HOME_DIR"
 
 if [ "$(id -u)" = 0 ]; then
@@ -45,7 +45,7 @@ else
     say "$(ls ./*.deb | wc -l) packages extracted"
 
     # Xvfb hardcodes /usr/bin (xkbcomp) and /usr/share/X11/xkb. Outside /usr it cannot find them, so we
-    # patch a copy of the binary with shorter paths (/tmp/xb, /tmp/xk) that launchsv symlinks at every start.
+    # patch a copy of the binary with shorter paths (/tmp/xb, /tmp/xk) that launchvs symlinks at every start.
     python3 - "$SYSROOT/usr/bin/Xvfb" "$HOME_DIR/Xvfb-relocated" <<'PY'
 import sys
 from pathlib import Path
@@ -72,7 +72,7 @@ FONTS
   fi
 fi
 
-# Playwright, needed by 'launchsv chrome'
+# Playwright, needed by 'launchvs chrome'
 if command -v node >/dev/null && command -v npm >/dev/null; then
   mkdir -p "$HOME_DIR/node"; cd "$HOME_DIR/node"
   [ -f package.json ] || echo '{"private":true,"type":"module"}' >package.json
@@ -83,9 +83,9 @@ if command -v node >/dev/null && command -v npm >/dev/null; then
   say "installing Playwright's Chromium (no-op when already cached)"
   npx --no-install playwright install chromium >/dev/null
 else
-  say "node/npm not found: 'launchsv chrome' will be unavailable (everything else works)"
+  say "node/npm not found: 'launchvs chrome' will be unavailable (everything else works)"
 fi
 
 say "self-test"
-"$ROOT/bin/launchsv" run -s 320x200 -- sh -c \
+"$ROOT/bin/launchvs" run -s 320x200 -- sh -c \
   'xwd -root -silent | python3 "$1" - "$2" && echo "virtual screen OK"' _ "$ROOT/lib/xwd2png.py" "$HOME_DIR/selftest.png"

@@ -1,9 +1,9 @@
 ### Capturing outside the page (browser toolbar, extension badge or menu, native windows)
 
-Playwright screenshots never include the browser UI. For those targets use `launchsv` (virtual screen, already on the PATH). Do not install Xvfb or extract `.deb` files by hand.
+Playwright screenshots never include the browser UI. For those targets use `launchvs` (virtual screen, already on the PATH). Do not install Xvfb or extract `.deb` files by hand.
 
-- `launchsv help` lists everything. If the command is missing, run `~/repos/launchsv/setup.sh` once.
-- Write a short scenario, then run `launchsv chrome --extension <dist-dir> --scenario s.mjs --out <dir>` (add `--url` or `-s 1280x900` as needed):
+- `launchvs help` lists everything. If the command is missing, run `~/repos/launchvs/setup.sh` once.
+- Write a short scenario, then run `launchvs chrome --extension <dist-dir> --scenario s.mjs --out <dir>` (add `--url` or `-s 1280x900` as needed):
   ```js
   export default async ({ page, extensionId, shot, click, sleep }) => {
     await page.goto(`chrome-extension://${extensionId}/sidepanel/index.html`)

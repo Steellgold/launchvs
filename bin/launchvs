@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
-# launchsv: a virtual screen (Xvfb) ready to use for agents. See `launchsv help`.
+# launchvs: a virtual screen (Xvfb) ready to use for agents. See `launchvs help`.
 set -euo pipefail
 
 VERSION=0.1.0
 SELF=$(readlink -f "${BASH_SOURCE[0]}")
 ROOT=$(dirname "$(dirname "$SELF")")
-HOME_DIR=${LAUNCHSV_HOME:-${XDG_DATA_HOME:-$HOME/.local/share}/launchsv}
+HOME_DIR=${LAUNCHVS_HOME:-${XDG_DATA_HOME:-$HOME/.local/share}/launchvs}
 SYSROOT=$HOME_DIR/root
-STATE=${TMPDIR:-/tmp}/launchsv-$(id -u)
+STATE=${TMPDIR:-/tmp}/launchvs-$(id -u)
 SIZE_DEFAULT=1280x900
 XVFB=Xvfb
 
-die() { echo "launchsv: $*" >&2; exit 1; }
+die() { echo "launchvs: $*" >&2; exit 1; }
 
 # Bootstrap mode (no root): binaries and libraries were extracted into $SYSROOT by `setup`.
 use_env() {
@@ -24,7 +24,7 @@ use_env() {
     ln -sfn "$SYSROOT/usr/share/X11/xkb" /tmp/xk
     XVFB=$HOME_DIR/Xvfb-relocated
   fi
-  command -v "$XVFB" >/dev/null 2>&1 || [ -x "$XVFB" ] || die "Xvfb not found: run 'launchsv setup'"
+  command -v "$XVFB" >/dev/null 2>&1 || [ -x "$XVFB" ] || die "Xvfb not found: run 'launchvs setup'"
 }
 
 # start_display WxH: starts Xvfb on a free display (chosen by Xvfb itself via -displayfd).
@@ -64,7 +64,7 @@ parse_size() {
 }
 
 need_display() {
-  [ -n "${DISPLAY:-}" ] || die "DISPLAY is empty: use 'launchsv run', 'launchsv chrome' or 'eval \"\$(launchsv start)\"'"
+  [ -n "${DISPLAY:-}" ] || die "DISPLAY is empty: use 'launchvs run', 'launchvs chrome' or 'eval \"\$(launchvs start)\"'"
 }
 
 cmd_setup() { exec "$ROOT/setup.sh" "$@"; }
@@ -90,16 +90,16 @@ cmd_stop() {
 
 cmd_run() {
   parse_size "$@"; use_env
-  [ ${#REST[@]} -gt 0 ] || die "usage: launchsv run [-s WxH] -- command..."
+  [ ${#REST[@]} -gt 0 ] || die "usage: launchvs run [-s WxH] -- command..."
   start_display "$SIZE"
   trap stop_display EXIT
   local rc=0
-  DISPLAY=":$DISPLAY_NUM" LAUNCHSV_SIZE=$SIZE "${REST[@]}" || rc=$?
+  DISPLAY=":$DISPLAY_NUM" LAUNCHVS_SIZE=$SIZE "${REST[@]}" || rc=$?
   exit "$rc"
 }
 
 cmd_shot() {
-  [ $# -ge 1 ] || die "usage: launchsv shot OUT.png [x y w h]"
+  [ $# -ge 1 ] || die "usage: launchvs shot OUT.png [x y w h]"
   use_env; need_display
   local out=$1; shift
   mkdir -p "$(dirname "$out")"
@@ -107,9 +107,9 @@ cmd_shot() {
   echo "$out"
 }
 
-cmd_click() { [ $# -eq 2 ] || die "usage: launchsv click X Y"; use_env; need_display; xdotool mousemove "$1" "$2" click 1; }
-cmd_type()  { [ $# -ge 1 ] || die "usage: launchsv type TEXT"; use_env; need_display; xdotool type --delay 20 -- "$*"; }
-cmd_key()   { [ $# -ge 1 ] || die "usage: launchsv key KEY... (e.g. Return, ctrl+l)"; use_env; need_display; xdotool key "$@"; }
+cmd_click() { [ $# -eq 2 ] || die "usage: launchvs click X Y"; use_env; need_display; xdotool mousemove "$1" "$2" click 1; }
+cmd_type()  { [ $# -ge 1 ] || die "usage: launchvs type TEXT"; use_env; need_display; xdotool type --delay 20 -- "$*"; }
+cmd_key()   { [ $# -ge 1 ] || die "usage: launchvs key KEY... (e.g. Return, ctrl+l)"; use_env; need_display; xdotool key "$@"; }
 
 cmd_chrome() {
   local ext="" url="" scenario="" out="" size=$SIZE_DEFAULT locale=en-US
@@ -125,34 +125,34 @@ cmd_chrome() {
       --out) out=$2; shift 2 ;;
       --size|-s) size=$2; shift 2 ;;
       --locale) locale=$2; shift 2 ;;
-      *) die "unknown option: $1 (see 'launchsv help')" ;;
+      *) die "unknown option: $1 (see 'launchvs help')" ;;
     esac
   done
   [[ $size =~ ^[0-9]+x[0-9]+$ ]] || die "invalid size: $size (expected e.g. 1280x900)"
   [ -z "$ext" ] || [ -f "$ext/manifest.json" ] || die "no manifest.json in $ext"
   [ -z "$scenario" ] || [ -f "$scenario" ] || die "scenario not found: $scenario"
-  command -v node >/dev/null 2>&1 || die "node is required for 'launchsv chrome'"
-  [ -d "$HOME_DIR/node/node_modules/playwright" ] || die "Playwright is missing: run 'launchsv setup'"
+  command -v node >/dev/null 2>&1 || die "node is required for 'launchvs chrome'"
+  [ -d "$HOME_DIR/node/node_modules/playwright" ] || die "Playwright is missing: run 'launchvs setup'"
   use_env
-  [ -n "$out" ] || out=_tmp/screenshots/launchsv-$(date +%Y%m%d-%H%M%S)
+  [ -n "$out" ] || out=_tmp/screenshots/launchvs-$(date +%Y%m%d-%H%M%S)
   mkdir -p "$out"; out=$(cd "$out" && pwd)
   start_display "$size"
   trap stop_display EXIT
   local rc=0
-  DISPLAY=":$DISPLAY_NUM" LAUNCHSV_BIN="$SELF" LAUNCHSV_HOME="$HOME_DIR" LAUNCHSV_SIZE=$size \
-    LAUNCHSV_EXTENSION=$ext LAUNCHSV_URL=$url LAUNCHSV_SCENARIO=$scenario LAUNCHSV_OUT=$out LAUNCHSV_LOCALE=$locale \
+  DISPLAY=":$DISPLAY_NUM" LAUNCHVS_BIN="$SELF" LAUNCHVS_HOME="$HOME_DIR" LAUNCHVS_SIZE=$size \
+    LAUNCHVS_EXTENSION=$ext LAUNCHVS_URL=$url LAUNCHVS_SCENARIO=$scenario LAUNCHVS_OUT=$out LAUNCHVS_LOCALE=$locale \
     node "$ROOT/lib/chrome.mjs" || rc=$?
   exit "$rc"
 }
 
 cmd_help() {
   cat <<'EOF'
-launchsv: a virtual screen (Xvfb) for screenshots Playwright cannot take
+launchvs: a virtual screen (Xvfb) for screenshots Playwright cannot take
 (browser toolbar, extension badge or menu, native windows).
 
   setup                          one-time, idempotent install (root: apt; otherwise: unprivileged bootstrap)
   run [-s WxH] -- CMD...         temporary screen; CMD runs with DISPLAY set, then the screen is destroyed
-  start [-s WxH]                 persistent screen; prints 'export DISPLAY=:N' (eval "$(launchsv start)")
+  start [-s WxH]                 persistent screen; prints 'export DISPLAY=:N' (eval "$(launchvs start)")
   stop [:N|all]                  stop screens created by 'start'
   shot OUT.png [x y w h]         screenshot of the screen, or of an area         (needs DISPLAY)
   click X Y | type TEXT | key K  native input through xdotool                    (needs DISPLAY)
@@ -162,7 +162,7 @@ launchsv: a virtual screen (Xvfb) for screenshots Playwright cannot take
 
 Scenario: export default async ({ page, context, worker, extensionId, shot, click, key, type, sleep }) => { ... }
   shot(name[, [x, y, w, h]]) writes OUT/name.png; capture-manifest.json is written when the scenario ends.
-Environment: LAUNCHSV_HOME (default ~/.local/share/launchsv)
+Environment: LAUNCHVS_HOME (default ~/.local/share/launchvs)
 EOF
 }
 
@@ -176,7 +176,7 @@ case ${1:-help} in
   type) shift; cmd_type "$@" ;;
   key) shift; cmd_key "$@" ;;
   chrome) shift; cmd_chrome "$@" ;;
-  version|--version) echo "launchsv $VERSION" ;;
+  version|--version) echo "launchvs $VERSION" ;;
   help|-h|--help) cmd_help ;;
   *) cmd_help >&2; exit 2 ;;
 esac

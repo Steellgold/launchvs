@@ -1,4 +1,4 @@
-# apt packages required by launchsv. Single source of truth: setup.sh installs them with apt (root)
+# apt packages required by launchvs. Single source of truth: setup.sh installs them with apt (root)
 # or downloads and extracts the .deb files (non-root bootstrap).
 # Virtual screen and X tools
 xvfb
