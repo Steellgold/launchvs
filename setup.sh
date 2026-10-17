@@ -72,7 +72,7 @@ FONTS
   fi
 fi
 
-# Playwright, needed by 'launchvs chrome'
+# Playwright, needed by 'launchvs browser'
 if command -v node >/dev/null && command -v npm >/dev/null; then
   mkdir -p "$HOME_DIR/node"; cd "$HOME_DIR/node"
   [ -f package.json ] || echo '{"private":true,"type":"module"}' >package.json
@@ -80,11 +80,11 @@ if command -v node >/dev/null && command -v npm >/dev/null; then
     say "installing playwright"
     npm install --no-audit --no-fund --silent playwright@^1.58
   fi
-  say "installing Playwright's Chromium and Firefox (no-op when already cached)"
+  say "installing Playwright's Chromium (Chrome) and Firefox (no-op when already cached)"
   # Playwright prints a "missing host dependencies" warning in bootstrap mode: the libraries are provided by launchvs.
   npx --no-install playwright install chromium firefox >/dev/null 2>&1
 else
-  say "node/npm not found: 'launchvs chrome' will be unavailable (everything else works)"
+  say "node/npm not found: 'launchvs browser' will be unavailable (everything else works)"
 fi
 
 say "self-test"

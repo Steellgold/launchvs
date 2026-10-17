@@ -2,12 +2,12 @@
 
 A virtual screen (Xvfb) that coding agents can use with a single command. It exists for screenshots that Playwright cannot take, because they include the browser itself: the toolbar, an extension badge or menu, a native window.
 
-Without it, an agent without root rights has to download `.deb` files, extract them, patch Xvfb and write an image converter every time. With it: `launchvs chrome --scenario shots.mjs`.
+Without it, an agent without root rights has to download `.deb` files, extract them, patch Xvfb and write an image converter every time. With it: `launchvs browser --scenario shots.mjs`.
 
 ## Requirements
 
 - Linux x86_64 with `apt-get` (tested on Ubuntu 24.04), `bash`, `python3`.
-- Node.js and npm, only for `launchvs chrome` (it installs Playwright with its Chromium and Firefox).
+- Node.js and npm, only for `launchvs browser` (it installs Playwright with its Chromium and Firefox).
 - Network access during `setup`.
 - Root is **not** required.
 
@@ -37,7 +37,7 @@ launchvs stop [:N|all]
 launchvs exec CMD...                 run CMD on the current screen with the right environment
 launchvs shot OUT.png [x y w h]      whole screen, or a cropped area
 launchvs click X Y | type TEXT | key KEY
-launchvs chrome [--browser chromium|firefox] [--extension DIR] [--url URL] [--scenario FILE.mjs] [--out DIR] [-s WxH] [--locale xx-XX]
+launchvs browser [--browser chrome|firefox] [--extension DIR] [--url URL] [--scenario FILE.mjs] [--out DIR] [-s WxH] [--locale xx-XX]
 ```
 
 Take a screenshot of any program:
@@ -50,7 +50,7 @@ After `launchvs start`, launch programs with `launchvs exec my-app &`: without r
 
 ### Screenshots of a real browser window
 
-`launchvs chrome` opens a visible browser (disposable profile) on a virtual screen, then runs your scenario. `--browser chromium` is the default and supports unpacked extensions with `--extension`; `--browser firefox` runs Playwright's Firefox (no extension support). Both are Playwright builds, not your installed browsers. A scenario is an ES module whose default export receives:
+`launchvs browser` opens a visible browser (disposable profile) on a virtual screen, then runs your scenario. Chrome is the default and supports unpacked extensions with `--extension`; add `--browser firefox` to use Firefox instead (no extension support). Both are Playwright builds (Chrome here is Playwright's Chromium), not your installed browsers. A scenario is an ES module whose default export receives:
 
 | Property | Description |
 | --- | --- |
@@ -72,7 +72,7 @@ export default async ({ page, extensionId, shot, click, sleep }) => {
 ```
 
 ```bash
-launchvs chrome --extension dist/chrome --scenario shots.mjs --out _tmp/screenshots/run1
+launchvs browser --extension dist/chrome --scenario shots.mjs --out _tmp/screenshots/run1
 ```
 
 Without `--scenario`, it takes one screenshot (`01-initial.png`) of the page given by `--url`. Either way, `capture-manifest.json` is written next to the images (browser and version, screen size, files, timestamp).
@@ -81,7 +81,7 @@ Without `--scenario`, it takes one screenshot (`01-initial.png`) of the page giv
 
 [`examples/`](examples) contains ready-to-copy material, to use after installing `launchvs` on your machine:
 
-- [`examples/scenarios/`](examples/scenarios): scenarios for `launchvs chrome` (extension toolbar and menu, a web page inside the browser window).
+- [`examples/scenarios/`](examples/scenarios): scenarios for `launchvs browser` (extension toolbar and menu, a web page inside the browser window).
 - [`examples/skills/browser-ui-screenshots`](examples/skills/browser-ui-screenshots): an agent skill for screenshots that include the browser UI.
 - [`examples/skills/native-app-screenshots`](examples/skills/native-app-screenshots): an agent skill to run and screenshot any GUI program.
 
@@ -99,7 +99,7 @@ Other agents that read `SKILL.md` folders work the same way. For agents that onl
 Try a scenario without any agent:
 
 ```bash
-launchvs chrome --url https://example.com --scenario examples/scenarios/page-in-browser.mjs --out _tmp/shots
+launchvs browser --url https://example.com --scenario examples/scenarios/page-in-browser.mjs --out _tmp/shots
 ```
 
 ## How the bootstrap works

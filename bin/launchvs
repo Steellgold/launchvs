@@ -64,7 +64,7 @@ parse_size() {
 }
 
 need_display() {
-  [ -n "${DISPLAY:-}" ] || die "DISPLAY is empty: use 'launchvs run', 'launchvs chrome' or 'eval \"\$(launchvs start)\"'"
+  [ -n "${DISPLAY:-}" ] || die "DISPLAY is empty: use 'launchvs run', 'launchvs browser' or 'eval \"\$(launchvs start)\"'"
 }
 
 cmd_setup() { exec "$ROOT/setup.sh" "$@"; }
@@ -118,7 +118,7 @@ cmd_click() { [ $# -eq 2 ] || die "usage: launchvs click X Y"; use_env; need_dis
 cmd_type()  { [ $# -ge 1 ] || die "usage: launchvs type TEXT"; use_env; need_display; xdotool type --delay 20 -- "$*"; }
 cmd_key()   { [ $# -ge 1 ] || die "usage: launchvs key KEY... (e.g. Return, ctrl+l)"; use_env; need_display; xdotool key "$@"; }
 
-cmd_chrome() {
+cmd_browser() {
   local ext="" url="" scenario="" out="" size=$SIZE_DEFAULT locale=en-US browser=chromium
   while [ $# -gt 0 ]; do
     case $1 in
@@ -138,14 +138,14 @@ cmd_chrome() {
   done
   [[ $size =~ ^[0-9]+x[0-9]+$ ]] || die "invalid size: $size (expected e.g. 1280x900)"
   case $browser in
-    chrome) browser=chromium ;;
-    chromium|firefox) ;;
-    *) die "unsupported browser: $browser (expected chromium or firefox)" ;;
+    chrome|chromium) browser=chromium ;;
+    firefox) ;;
+    *) die "unsupported browser: $browser (expected chrome or firefox)" ;;
   esac
-  [ -z "$ext" ] || [ "$browser" = chromium ] || die "--extension is only supported with --browser chromium"
+  [ -z "$ext" ] || [ "$browser" = chromium ] || die "--extension is only supported with the default browser (chrome)"
   [ -z "$ext" ] || [ -f "$ext/manifest.json" ] || die "no manifest.json in $ext"
   [ -z "$scenario" ] || [ -f "$scenario" ] || die "scenario not found: $scenario"
-  command -v node >/dev/null 2>&1 || die "node is required for 'launchvs chrome'"
+  command -v node >/dev/null 2>&1 || die "node is required for 'launchvs browser'"
   [ -d "$HOME_DIR/node/node_modules/playwright" ] || die "Playwright is missing: run 'launchvs setup'"
   use_env
   [ -n "$out" ] || out=_tmp/screenshots/launchvs-$(date +%Y%m%d-%H%M%S)
@@ -155,7 +155,7 @@ cmd_chrome() {
   local rc=0
   DISPLAY=":$DISPLAY_NUM" LAUNCHVS_BIN="$SELF" LAUNCHVS_HOME="$HOME_DIR" LAUNCHVS_SIZE=$size \
     LAUNCHVS_EXTENSION=$ext LAUNCHVS_URL=$url LAUNCHVS_SCENARIO=$scenario LAUNCHVS_OUT=$out LAUNCHVS_LOCALE=$locale LAUNCHVS_BROWSER=$browser \
-    node "$ROOT/lib/chrome.mjs" || rc=$?
+    node "$ROOT/lib/browser.mjs" || rc=$?
   exit "$rc"
 }
 
@@ -171,10 +171,10 @@ launchvs: a virtual screen (Xvfb) for screenshots Playwright cannot take
   exec CMD...                    run CMD with launchvs' environment on the current DISPLAY (needed after 'start')
   shot OUT.png [x y w h]         screenshot of the screen, or of an area         (needs DISPLAY)
   click X Y | type TEXT | key K  native input through xdotool                    (needs DISPLAY)
-  chrome [--browser chromium|firefox] [--extension DIR] [--url URL] [--scenario FILE.mjs] [--out DIR]
+  browser [--browser chrome|firefox] [--extension DIR] [--url URL] [--scenario FILE.mjs] [--out DIR]
          [-s WxH] [--locale xx-XX]
                                  visible browser (disposable profile) on a virtual screen, optional scenario
-                                 (--extension: Chromium only; Firefox runs without extensions)
+                                 (default: chrome; --extension is Chrome only; Firefox runs without extensions)
   version                        print the version
 
 Scenario: export default async ({ page, context, worker, extensionId, shot, click, key, type, sleep }) => { ... }
@@ -193,7 +193,7 @@ case ${1:-help} in
   click) shift; cmd_click "$@" ;;
   type) shift; cmd_type "$@" ;;
   key) shift; cmd_key "$@" ;;
-  chrome) shift; cmd_chrome "$@" ;;
+  browser|chrome) shift; cmd_browser "$@" ;;
   version|--version) echo "launchvs $VERSION" ;;
   help|-h|--help) cmd_help ;;
   *) cmd_help >&2; exit 2 ;;

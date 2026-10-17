@@ -1,5 +1,5 @@
 // Screenshot of a web page together with the browser window around it (tabs, address bar).
-// Run: launchvs chrome --url https://example.com --scenario examples/scenarios/page-in-browser.mjs --out _tmp/shots
+// Run: launchvs browser --url https://example.com --scenario examples/scenarios/page-in-browser.mjs --out _tmp/shots
 export default async ({ page, shot, key, sleep }) => {
   await page.evaluate(async () => {
     await document.fonts.ready

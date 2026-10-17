@@ -17,7 +17,7 @@ Playwright screenshots never include the browser UI. `launchvs` runs a visible C
 1. Write a scenario (about 10 lines) in a temporary location, for example `_tmp/scenario.mjs`. Start from `~/repos/launchvs/examples/scenarios/extension-toolbar.mjs` or `page-in-browser.mjs`.
    - `shot(name)` captures the whole screen, `shot(name, [x, y, w, h])` a cropped area.
    - `click(x, y)`, `key('ctrl+l')` and `type('text')` send native input, so they reach browser UI such as the extensions menu.
-2. Run it: `launchvs chrome --extension <dist-dir> --scenario _tmp/scenario.mjs --out _tmp/screenshots/<task>`. Use `--url <url>` for a web page, `-s 1280x900` to change the screen size, and `--browser firefox` to capture Firefox instead of Chromium (extensions are Chromium-only).
+2. Run it: `launchvs browser --extension <dist-dir> --scenario _tmp/scenario.mjs --out _tmp/screenshots/<task>`. Use `--url <url>` for a web page, `-s 1280x900` to change the screen size, and `--browser firefox` to capture Firefox instead of Chrome (extensions are Chrome-only).
 3. Open every PNG and check it. Coordinates depend on the screen size: take a full screenshot first, then crop.
 4. Report the paths. Say these are screenshots of a real Chromium window on a virtual screen, and mention the generated `capture-manifest.json`.
 

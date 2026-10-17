@@ -1,5 +1,5 @@
 // Screenshots of an unpacked extension inside a real Chromium window: panel, toolbar and extensions menu.
-// Run: launchvs chrome --extension dist/chrome --scenario examples/scenarios/extension-toolbar.mjs --out _tmp/shots
+// Run: launchvs browser --extension dist/chrome --scenario examples/scenarios/extension-toolbar.mjs --out _tmp/shots
 export default async ({ page, extensionId, shot, click, sleep }) => {
   await page.goto(`chrome-extension://${extensionId}/sidepanel/index.html`) // adapt to your extension's entry page
   await sleep(1500)
