@@ -34,6 +34,7 @@ Check the installation with `test/smoke.sh`.
 launchvs run [-s WxH] -- CMD...      temporary screen, destroyed when CMD exits
 launchvs start [-s WxH]              persistent screen, prints: export DISPLAY=:N
 launchvs stop [:N|all]
+launchvs exec CMD...                 run CMD on the current screen with the right environment
 launchvs shot OUT.png [x y w h]      whole screen, or a cropped area
 launchvs click X Y | type TEXT | key KEY
 launchvs chrome [--extension DIR] [--url URL] [--scenario FILE.mjs] [--out DIR] [-s WxH] [--locale xx-XX]
@@ -44,6 +45,8 @@ Take a screenshot of any program:
 ```bash
 launchvs run -s 800x600 -- sh -c 'my-app & sleep 2; launchvs shot out.png'
 ```
+
+After `launchvs start`, launch programs with `launchvs exec my-app &`: without root, the libraries they need live in `$LAUNCHVS_HOME`, and `exec` sets up the environment (inside `launchvs run` it is already set).
 
 ### Screenshots of an extension in a real Chromium window
 
@@ -73,6 +76,31 @@ launchvs chrome --extension dist/chrome --scenario shots.mjs --out _tmp/screensh
 ```
 
 Without `--scenario`, it takes one screenshot (`01-initial.png`) of the page given by `--url`. Either way, `capture-manifest.json` is written next to the images (Chromium version, screen size, files, timestamp).
+
+## Examples
+
+[`examples/`](examples) contains ready-to-copy material, to use after installing `launchvs` on your machine:
+
+- [`examples/scenarios/`](examples/scenarios): scenarios for `launchvs chrome` (extension toolbar and menu, a web page inside the browser window).
+- [`examples/skills/browser-ui-screenshots`](examples/skills/browser-ui-screenshots): an agent skill for screenshots that include the browser UI.
+- [`examples/skills/native-app-screenshots`](examples/skills/native-app-screenshots): an agent skill to run and screenshot any GUI program.
+
+Install the skills where your agent looks for them:
+
+```bash
+# Claude Code
+mkdir -p ~/.claude/skills && cp -r examples/skills/* ~/.claude/skills/
+# opencode
+mkdir -p ~/.config/opencode/skills && cp -r examples/skills/* ~/.config/opencode/skills/
+```
+
+Other agents that read `SKILL.md` folders work the same way. For agents that only read an instructions file (`AGENTS.md`, `CLAUDE.md`), paste [`skill-snippet.md`](skill-snippet.md) into it.
+
+Try a scenario without any agent:
+
+```bash
+launchvs chrome --url https://example.com --scenario examples/scenarios/page-in-browser.mjs --out _tmp/shots
+```
 
 ## How the bootstrap works
 
