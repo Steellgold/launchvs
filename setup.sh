@@ -80,8 +80,9 @@ if command -v node >/dev/null && command -v npm >/dev/null; then
     say "installing playwright"
     npm install --no-audit --no-fund --silent playwright@^1.58
   fi
-  say "installing Playwright's Chromium (no-op when already cached)"
-  npx --no-install playwright install chromium >/dev/null
+  say "installing Playwright's Chromium and Firefox (no-op when already cached)"
+  # Playwright prints a "missing host dependencies" warning in bootstrap mode: the libraries are provided by launchvs.
+  npx --no-install playwright install chromium firefox >/dev/null 2>&1
 else
   say "node/npm not found: 'launchvs chrome' will be unavailable (everything else works)"
 fi

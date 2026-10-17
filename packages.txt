@@ -91,6 +91,30 @@ libicu74
 libelf1t64
 libsensors5
 libsensors-config
+# Firefox (GTK3 and image libraries)
+libgtk-3-0t64
+libgtk-3-common
+libgdk-pixbuf-2.0-0
+libgdk-pixbuf2.0-common
+libcairo-gobject2
+libpangocairo-1.0-0
+libpangoft2-1.0-0
+libxcursor1
+libepoxy0
+libcolord2
+liblcms2-2
+libdconf1
+libwayland-client0
+libwayland-cursor0
+libwayland-egl1
+libjpeg-turbo8
+libjpeg8
+libtiff6
+libdeflate0
+libjbig0
+liblerc4
+libwebp7
+libsharpyuv0
 # Fonts
 fontconfig
 fontconfig-config
