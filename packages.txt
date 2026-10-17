@@ -45,6 +45,15 @@ libxcb-render0
 libxcb-shm0
 libxcb-sync1
 libxcb-xfixes0
+# Toolkit libraries needed by x11-apps (xclock, xeyes, xcalc...)
+libice6
+libsm6
+libxt6t64
+libxmu6
+libxaw7
+libxft2
+libxpm4
+libxcb-damage0
 # Chromium runtime (rendering, audio, printing, accessibility)
 libnss3
 libnspr4

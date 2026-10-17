@@ -107,6 +107,13 @@ cmd_shot() {
   echo "$out"
 }
 
+# Runs a command with launchvs' environment (needed in bootstrap mode, where libraries live outside the system paths).
+cmd_exec() {
+  [ $# -ge 1 ] || die "usage: launchvs exec CMD..."
+  use_env; need_display
+  exec "$@"
+}
+
 cmd_click() { [ $# -eq 2 ] || die "usage: launchvs click X Y"; use_env; need_display; xdotool mousemove "$1" "$2" click 1; }
 cmd_type()  { [ $# -ge 1 ] || die "usage: launchvs type TEXT"; use_env; need_display; xdotool type --delay 20 -- "$*"; }
 cmd_key()   { [ $# -ge 1 ] || die "usage: launchvs key KEY... (e.g. Return, ctrl+l)"; use_env; need_display; xdotool key "$@"; }
@@ -154,6 +161,7 @@ launchvs: a virtual screen (Xvfb) for screenshots Playwright cannot take
   run [-s WxH] -- CMD...         temporary screen; CMD runs with DISPLAY set, then the screen is destroyed
   start [-s WxH]                 persistent screen; prints 'export DISPLAY=:N' (eval "$(launchvs start)")
   stop [:N|all]                  stop screens created by 'start'
+  exec CMD...                    run CMD with launchvs' environment on the current DISPLAY (needed after 'start')
   shot OUT.png [x y w h]         screenshot of the screen, or of an area         (needs DISPLAY)
   click X Y | type TEXT | key K  native input through xdotool                    (needs DISPLAY)
   chrome [--extension DIR] [--url URL] [--scenario FILE.mjs] [--out DIR] [-s WxH] [--locale xx-XX]
@@ -171,6 +179,7 @@ case ${1:-help} in
   start) shift; cmd_start "$@" ;;
   stop) shift; cmd_stop "$@" ;;
   run) shift; cmd_run "$@" ;;
+  exec) shift; cmd_exec "$@" ;;
   shot) shift; cmd_shot "$@" ;;
   click) shift; cmd_click "$@" ;;
   type) shift; cmd_type "$@" ;;

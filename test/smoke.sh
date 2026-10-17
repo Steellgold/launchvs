@@ -20,5 +20,7 @@ check "cropped screenshot is 200x120" "200 120" "$(png_size "$OUT/crop.png")"
 "$LAUNCHVS" run -s 100x100 -- sh -c '! "$1" shot "$2/bad.png" 90 90 50 50 2>/dev/null' _ "$LAUNCHVS" "$OUT"
 echo "ok   out-of-screen crop is rejected"
 
+check "exec runs with DISPLAY set" "1" "$("$LAUNCHVS" run -- "$LAUNCHVS" exec sh -c 'test -n "$DISPLAY" && echo 1')"
+
 check "display is cleaned up" "0" "$(pgrep -fc "Xvfb.*-displayfd" || true)"
 echo "all good"
