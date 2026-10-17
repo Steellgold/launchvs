@@ -7,7 +7,7 @@ Without it, an agent without root rights has to download `.deb` files, extract t
 ## Requirements
 
 - Linux x86_64 with `apt-get` (tested on Ubuntu 24.04), `bash`, `python3`.
-- Node.js and npm, only for `launchvs chrome` (it installs Playwright and its Chromium).
+- Node.js and npm, only for `launchvs chrome` (it installs Playwright with its Chromium and Firefox).
 - Network access during `setup`.
 - Root is **not** required.
 
@@ -37,7 +37,7 @@ launchvs stop [:N|all]
 launchvs exec CMD...                 run CMD on the current screen with the right environment
 launchvs shot OUT.png [x y w h]      whole screen, or a cropped area
 launchvs click X Y | type TEXT | key KEY
-launchvs chrome [--extension DIR] [--url URL] [--scenario FILE.mjs] [--out DIR] [-s WxH] [--locale xx-XX]
+launchvs chrome [--browser chromium|firefox] [--extension DIR] [--url URL] [--scenario FILE.mjs] [--out DIR] [-s WxH] [--locale xx-XX]
 ```
 
 Take a screenshot of any program:
@@ -48,9 +48,9 @@ launchvs run -s 800x600 -- sh -c 'my-app & sleep 2; launchvs shot out.png'
 
 After `launchvs start`, launch programs with `launchvs exec my-app &`: without root, the libraries they need live in `$LAUNCHVS_HOME`, and `exec` sets up the environment (inside `launchvs run` it is already set).
 
-### Screenshots of an extension in a real Chromium window
+### Screenshots of a real browser window
 
-`launchvs chrome` opens a visible Chromium (disposable profile, optional unpacked extension) on a virtual screen, then runs your scenario. A scenario is an ES module whose default export receives:
+`launchvs chrome` opens a visible browser (disposable profile) on a virtual screen, then runs your scenario. `--browser chromium` is the default and supports unpacked extensions with `--extension`; `--browser firefox` runs Playwright's Firefox (no extension support). Both are Playwright builds, not your installed browsers. A scenario is an ES module whose default export receives:
 
 | Property | Description |
 | --- | --- |
@@ -75,7 +75,7 @@ export default async ({ page, extensionId, shot, click, sleep }) => {
 launchvs chrome --extension dist/chrome --scenario shots.mjs --out _tmp/screenshots/run1
 ```
 
-Without `--scenario`, it takes one screenshot (`01-initial.png`) of the page given by `--url`. Either way, `capture-manifest.json` is written next to the images (Chromium version, screen size, files, timestamp).
+Without `--scenario`, it takes one screenshot (`01-initial.png`) of the page given by `--url`. Either way, `capture-manifest.json` is written next to the images (browser and version, screen size, files, timestamp).
 
 ## Examples
 
